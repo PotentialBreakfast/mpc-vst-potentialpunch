@@ -148,10 +148,7 @@ static int get_param(void *inst, const char *key, char *buf, int buf_len) {
     }
     if (!strcmp(key, "display_rev")) return snprintf(buf, buf_len, "%u", s->rev);
     if (!strcmp(key, "meter")) return snprintf(buf, buf_len, "%d", s->meter);
-    if (!strcmp(key, "reading")) {
-        if (s->level_hold < -70.0f) return snprintf(buf, buf_len, "WAITING FOR AUDIO  -  PLAY SOME DRUMS");
-        return snprintf(buf, buf_len, "PUNCH %+5.1f dB      TAIL %+5.1f dB", (double)s->punch_hold, (double)s->tail_hold);
-    }
+    if (!strcmp(key, "reading")) return snprintf(buf, buf_len, "TAP A PRESET, THEN SHAPE ATTACK AND SUSTAIN  -  THE METER SHOWS THE CHANGE");   /* fixed: live text would need UpdateDisplays, which close MPC's PRESET menu */
     if (!strncmp(key, "preset:", 7)) {
         int n = atoi(key + 7);
         if (n >= 0 && n < NPRESET) return snprintf(buf, buf_len, "%s", PRESET_NAMES[n]);
@@ -242,7 +239,6 @@ static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frame
             if (fabsf(s->punch_hold) < 0.05f) s->punch_hold = 0;
             if (fabsf(s->tail_hold) < 0.05f) s->tail_hold = 0;
             s->level_hold = s->level_hold > -120.0f ? s->level_hold - 12.0f : -120.0f;
-            s->rev++;
         }
     }
 }

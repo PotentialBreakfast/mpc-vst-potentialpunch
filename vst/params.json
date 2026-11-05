@@ -82,10 +82,11 @@
   },
   {
    "key": "reading",
-   "name": "Reading",
+   "name": "Tip",
    "type": "readout",
    "display": "string",
-   "live": true
+   "live": true,
+   "poll": false
   },
   {
    "key": "meter",

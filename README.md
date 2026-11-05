@@ -4,7 +4,7 @@
 
 ![PotentialPunch's page on the MPC](docs/images/potentialpunch.png)
 
-*Insert effect · MPC OS 3.x · Gen1 (32-bit) · v1.0.0*
+*Insert effect · MPC OS 3.x · Gen1 (32-bit) · v1.0.1*
 
 Free and open source (MIT), made by **PotentialBreaks**. It runs inside the MPC like its own effects, with its own touchscreen page, Q-Link control and project recall, and no computer needed while you play.
 
@@ -21,7 +21,7 @@ Free and open source (MIT), made by **PotentialBreaks**. It runs inside the MPC 
 | **CLIP** | A soft clipper after the shaper, to catch the extra peaks and add a little bite |
 | **MIX / OUTPUT** | Blend with the original sound, set the level |
 
-It reacts to how quickly each hit rises and falls, not to how loud the track is, so it works the same on quiet and loud material. A live meter shows the boost or cut as it happens, and a readout shows the latest **PUNCH** and **TAIL** change in dB.
+It reacts to how quickly each hit rises and falls, not to how loud the track is, so it works the same on quiet and loud material. A live meter shows the boost or cut as it happens.
 
 **Presets** (one tap on the page, and in the MPC's PRESET menu): Punchy Drums, Kick Snap, Snare Crack, Break Smack, Dry Drums, Big Room, Hat Tick, Soft Hits, Bass Pluck, Keys & Guitar, Lush Sustain and Flat.
 
