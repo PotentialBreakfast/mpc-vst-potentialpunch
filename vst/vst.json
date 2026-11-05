@@ -1,0 +1,31 @@
+{
+ "name": "PotentialPunch",
+ "vendor": "PotentialBreaks",
+ "uid": "PbPu",
+ "version": 1000,
+ "so": "potentialpunch.so",
+ "params": "params.json",
+ "layout": "layout.conf",
+ "defines": {
+  "HAS_DISPLAY_REV": 1,
+  "PARAM_TEXT_MAX": 96
+ },
+ "build": {
+  "root": "..",
+  "sources": [
+   "src/punch.c"
+  ],
+  "cflags": [
+   "-ffast-math"
+  ],
+  "libs": [
+   "-lm"
+  ]
+ },
+ "nrpn": false,
+ "art": "html",
+ "effect": true,
+ "programs": {
+  "param": "preset"
+ }
+}

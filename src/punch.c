@@ -1,0 +1,251 @@
+/* PotentialPunch (PotentialBreaks): a transient shaper for MPC OS standalone devices.
+ * ATTACK makes the start of every hit louder (+) or softer (-); SUSTAIN does the same for the tail after it.
+ * Level-independent: it reacts to how fast the level rises and falls, not to how loud the track is, so no threshold.
+ *   SPEED  TIGHT / MEDIUM / SLOW: how long the "attack" part lasts and how long the tail is followed
+ *   FOCUS  FULL / LOWS / HIGHS: what the detector listens to (the whole signal is always shaped)
+ *   CLIP   a soft clipper after the shaper, to catch the extra peaks (and add a little bite)
+ * then dry/wet MIX and OUTPUT. A PRESET list (also MPC's PRESET menu) sets them all in one tap.
+ * 44.1 kHz, interleaved int16 stereo, 128-frame blocks (wrapper/engine.h). */
+#include <math.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "engine.h"
+
+#define FS 44100.0f
+#define PI_F 3.14159265f
+#define MAX_DB 18.0f          /* the most the gain moves either way */
+
+/* ---- parameters: same order and keys as vst/params.json ---- */
+enum { P_PRESET, P_ATTACK, P_SUSTAIN, P_SPEED, P_FOCUS, P_CLIP, P_MIX, P_OUT, NP };
+static const char *KEYS[NP] = {"preset", "attack", "sustain", "speed", "focus", "clip", "mix", "output"};
+
+/* ---- presets: attack, sustain, speed, focus, clip, mix, output (same order as the preset param's options) ---- */
+#define NPRESET 12
+static const float PRESETS[NPRESET][7] = {
+    { 45, -15, 1, 0, 1, 100,  0},   /* Punchy Drums */
+    { 60, -25, 0, 1, 0, 100, -1},   /* Kick Snap */
+    { 55,  10, 0, 2, 0, 100, -1},   /* Snare Crack */
+    { 50,  15, 1, 0, 1, 100, -1},   /* Break Smack */
+    { 20, -60, 1, 0, 0, 100,  0},   /* Dry Drums */
+    {-10,  55, 2, 0, 0, 100, -2},   /* Big Room */
+    { 40, -35, 0, 2, 0, 100,  0},   /* Hat Tick */
+    {-50,  10, 1, 0, 0, 100,  1},   /* Soft Hits */
+    { 35, -25, 1, 1, 0, 100,  0},   /* Bass Pluck */
+    { 25,   0, 0, 0, 0,  80,  0},   /* Keys & Guitar */
+    {-30,  45, 2, 0, 0, 100, -2},   /* Lush Sustain */
+    {  0,   0, 1, 0, 0, 100,  0},   /* Flat */
+};
+
+/* speed: how long the slow follower takes to catch up (= length of the "attack" part), the short release,
+ * and the long release that follows the tail */
+static const float SPD_ATT[3] = {0.008f, 0.020f, 0.045f};
+static const float SPD_REL[3] = {0.030f, 0.060f, 0.120f};
+static const float SPD_SUS[3] = {0.150f, 0.300f, 0.600f};
+
+static inline float tc(float sec) { return 1.0f - expf(-1.0f / (sec * FS)); }
+static inline float onepole_k(float hz) { return 1.0f - expf(-2.0f * PI_F * hz / FS); }
+/* fast log2 (about 0.01 dB error is plenty for a detector) */
+static inline float flog2(float x) {
+    union { float f; uint32_t i; } u = {x};
+    float e = (float)(int)((u.i >> 23) & 255) - 128.0f;
+    u.i = (u.i & 0x007fffffu) | 0x3f800000u;
+    float m = u.f;
+    return e + (-0.34484843f * m + 2.02466578f) * m - 0.67487759f;
+}
+static inline float todb(float x) { return 6.0205999f * flog2(x + 1e-9f); }
+
+typedef struct {
+    float p[NP];
+    int pending;                   /* keys to report to the host after a preset (bit i = param i) */
+    /* detector */
+    float lp1, lp2, hp_lp1, hp_lp2;
+    float e_fast, e_slow, e_hold, e_short;
+    float g_db;                    /* smoothed gain change, dB */
+    float s_mix, s_out, s_a, s_s;  /* smoothed controls */
+    /* display */
+    float win_hi, win_lo, punch_hold, tail_hold, level_hold;
+    int win_n, meter, slow;
+    unsigned rev;
+} punch_t;
+
+static void apply_preset(punch_t *s, int n) {
+    if (n < 0 || n >= NPRESET) return;
+    s->p[P_PRESET] = (float)n;
+    for (int i = 0; i < 7; i++) s->p[P_ATTACK + i] = PRESETS[n][i];
+    s->pending |= 0xfe;            /* attack .. output changed */
+    s->rev++;
+}
+
+static void *create(const char *data_dir) {
+    (void)data_dir;
+    punch_t *s = calloc(1, sizeof *s);
+    if (!s) return NULL;
+    apply_preset(s, 0);
+    s->pending = 0;
+    s->s_mix = s->p[P_MIX] / 100.0f; s->s_out = powf(10.0f, s->p[P_OUT] / 20.0f);
+    s->s_a = s->p[P_ATTACK] / 100.0f; s->s_s = s->p[P_SUSTAIN] / 100.0f;
+    s->meter = 15; s->level_hold = -120.0f;
+    return s;
+}
+static void destroy(void *inst) { free(inst); }
+static void midi(void *inst, const uint8_t *msg, int len) { (void)inst; (void)msg; (void)len; }
+
+static int find(const char *key) {
+    for (int i = 0; i < NP; i++) if (!strcmp(key, KEYS[i])) return i;
+    return -1;
+}
+static float clampf(float x, float lo, float hi) { return x < lo ? lo : x > hi ? hi : x; }
+static void clamp_all(punch_t *s) {
+    s->p[P_PRESET] = clampf(roundf(s->p[P_PRESET]), 0, NPRESET - 1);
+    s->p[P_ATTACK] = clampf(s->p[P_ATTACK], -100, 100);
+    s->p[P_SUSTAIN] = clampf(s->p[P_SUSTAIN], -100, 100);
+    s->p[P_SPEED] = clampf(roundf(s->p[P_SPEED]), 0, 2);
+    s->p[P_FOCUS] = clampf(roundf(s->p[P_FOCUS]), 0, 2);
+    s->p[P_CLIP] = clampf(roundf(s->p[P_CLIP]), 0, 1);
+    s->p[P_MIX] = clampf(s->p[P_MIX], 0, 100);
+    s->p[P_OUT] = clampf(s->p[P_OUT], -12, 12);
+}
+
+static void set_param(void *inst, const char *key, const char *val) {
+    punch_t *s = inst;
+    if (!strcmp(key, "state")) {   /* "key=value;key=value;..." -- restores values as saved, no preset reload */
+        char tmp[512]; snprintf(tmp, sizeof tmp, "%s", val);
+        for (char *tok = strtok(tmp, ";"); tok; tok = strtok(NULL, ";")) {
+            char *eq = strchr(tok, '=');
+            if (!eq) continue;
+            *eq = 0;
+            int i = find(tok);
+            if (i >= 0) s->p[i] = (float)atof(eq + 1);
+        }
+        clamp_all(s); s->rev++;
+        return;
+    }
+    int i = find(key);
+    if (i < 0) return;
+    if (i == P_PRESET) { int n = (int)lroundf((float)atof(val)); if (n != (int)s->p[P_PRESET]) apply_preset(s, n); return; }   /* only on a change: a project reload re-sending the same preset keeps its tweaks */
+    s->p[i] = (float)atof(val);
+    clamp_all(s);
+}
+
+int mpc_engine_changed(void *inst, char *key, int len) {
+    punch_t *s = inst;
+    for (int i = 0; i < NP; i++)
+        if (s->pending & (1 << i)) { s->pending &= ~(1 << i); snprintf(key, len, "%s", KEYS[i]); return 1; }
+    return 0;
+}
+
+static const char *PRESET_NAMES[NPRESET] = {"Punchy Drums", "Kick Snap", "Snare Crack", "Break Smack", "Dry Drums", "Big Room",
+                                            "Hat Tick", "Soft Hits", "Bass Pluck", "Keys & Guitar", "Lush Sustain", "Flat"};
+
+static int get_param(void *inst, const char *key, char *buf, int buf_len) {
+    punch_t *s = inst;
+    if (!strcmp(key, "state")) {
+        int n = 0;
+        for (int i = 0; i < NP && n < buf_len; i++) n += snprintf(buf + n, buf_len - n, "%s=%g;", KEYS[i], (double)s->p[i]);
+        return n;
+    }
+    if (!strcmp(key, "display_rev")) return snprintf(buf, buf_len, "%u", s->rev);
+    if (!strcmp(key, "meter")) return snprintf(buf, buf_len, "%d", s->meter);
+    if (!strcmp(key, "reading")) {
+        if (s->level_hold < -70.0f) return snprintf(buf, buf_len, "WAITING FOR AUDIO  -  PLAY SOME DRUMS");
+        return snprintf(buf, buf_len, "PUNCH %+5.1f dB      TAIL %+5.1f dB", (double)s->punch_hold, (double)s->tail_hold);
+    }
+    if (!strncmp(key, "preset:", 7)) {
+        int n = atoi(key + 7);
+        if (n >= 0 && n < NPRESET) return snprintf(buf, buf_len, "%s", PRESET_NAMES[n]);
+        return 0;
+    }
+    int i = find(key);
+    if (i < 0) return 0;
+    if (i == P_PRESET || i == P_SPEED || i == P_FOCUS || i == P_CLIP) return snprintf(buf, buf_len, "%d", (int)lroundf(s->p[i]));
+    return snprintf(buf, buf_len, "%g", (double)s->p[i]);
+}
+
+static void render(void *inst, int16_t *out_lr, int frames) {   /* an effect: silence without input */
+    (void)inst;
+    memset(out_lr, 0, (size_t)frames * 2 * sizeof(int16_t));
+}
+
+static inline float follow(float env, float x, float ka, float kr) { return env + (x - env) * (x > env ? ka : kr); }
+static inline float soft_clip(float x) {    /* clean below 0.7, rounds off above, never past 1.0 */
+    float a = fabsf(x);
+    if (a <= 0.7f) return x;
+    float y = 0.7f + 0.3f * tanhf((a - 0.7f) / 0.3f);
+    return x < 0 ? -y : y;
+}
+
+static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frames) {
+    punch_t *s = inst;
+    int spd = (int)s->p[P_SPEED], focus = (int)s->p[P_FOCUS], clip = (int)s->p[P_CLIP];
+    const float k_fast_a = tc(0.0002f), k_slow_a = tc(SPD_ATT[spd]), k_rel = tc(SPD_REL[spd]), k_sus = tc(SPD_SUS[spd]);
+    const float k_lp = onepole_k(180.0f), k_hp = onepole_k(1800.0f), k_g = tc(0.0005f), k_c = tc(0.02f);
+    const float t_mix = s->p[P_MIX] / 100.0f, t_out = powf(10.0f, s->p[P_OUT] / 20.0f);
+    const float t_a = s->p[P_ATTACK] / 100.0f, t_s = s->p[P_SUSTAIN] / 100.0f;
+
+    for (int n = 0; n < frames; n++) {
+        float l = in_lr[2 * n] * (1.0f / 32768.0f), r = in_lr[2 * n + 1] * (1.0f / 32768.0f);
+        s->s_mix += (t_mix - s->s_mix) * k_c; s->s_out += (t_out - s->s_out) * k_c;
+        s->s_a += (t_a - s->s_a) * k_c; s->s_s += (t_s - s->s_s) * k_c;
+
+        /* detector input: the louder channel, through the focus filter */
+        float d = 0.5f * (l + r), m = fabsf(l) > fabsf(r) ? fabsf(l) : fabsf(r);
+        if (focus == 1) {          /* lows: two one-pole low-passes */
+            s->lp1 += (d - s->lp1) * k_lp; s->lp2 += (s->lp1 - s->lp2) * k_lp; m = fabsf(s->lp2) * 1.6f;
+        } else if (focus == 2) {   /* highs: input minus two low-passes */
+            s->hp_lp1 += (d - s->hp_lp1) * k_hp; s->hp_lp2 += (s->hp_lp1 - s->hp_lp2) * k_hp; m = fabsf(d - s->hp_lp2) * 1.6f;
+        }
+        s->e_fast = follow(s->e_fast, m, k_fast_a, k_rel);
+        s->e_slow = follow(s->e_slow, m, k_slow_a, k_rel);
+        s->e_hold = follow(s->e_hold, m, k_fast_a, k_sus);
+        s->e_short = follow(s->e_short, m, k_fast_a, k_rel);
+
+        float lvl = todb(s->e_hold);
+        float att_db = todb(s->e_fast) - todb(s->e_slow); if (att_db < 0) att_db = 0; if (att_db > 24) att_db = 24;
+        float sus_db = lvl - todb(s->e_short); if (sus_db < 0) sus_db = 0; if (sus_db > 24) sus_db = 24;
+        float gate = clampf((lvl + 66.0f) / 6.0f, 0.0f, 1.0f);   /* leave near-silence alone (no noise pumping) */
+        float pa = s->s_a * att_db * 1.1f * gate, ps = s->s_s * sus_db * 0.9f * gate;
+        float target = clampf(pa + ps, -MAX_DB, MAX_DB);
+        s->g_db += (target - s->g_db) * k_g;
+        float g = exp2f(s->g_db * 0.16609640f);   /* dB -> gain */
+
+        float yl = l * g, yr = r * g;
+        if (clip) { yl = soft_clip(yl); yr = soft_clip(yr); }
+        float ol = (l + (yl - l) * s->s_mix) * s->s_out, orr = (r + (yr - r) * s->s_mix) * s->s_out;
+        if (!(ol == ol)) ol = 0;
+        if (!(orr == orr)) orr = 0;
+        /* safety limiter above -1 dBFS, then a hard stop */
+        ol = ol > 0.89f ? 0.89f + 0.11f * tanhf((ol - 0.89f) / 0.11f) : ol < -0.89f ? -0.89f - 0.11f * tanhf((-ol - 0.89f) / 0.11f) : ol;
+        orr = orr > 0.89f ? 0.89f + 0.11f * tanhf((orr - 0.89f) / 0.11f) : orr < -0.89f ? -0.89f - 0.11f * tanhf((-orr - 0.89f) / 0.11f) : orr;
+        out_lr[2 * n] = (int16_t)lrintf(clampf(ol, -1.0f, 1.0f) * 32767.0f);
+        out_lr[2 * n + 1] = (int16_t)lrintf(clampf(orr, -1.0f, 1.0f) * 32767.0f);
+
+        /* display */
+        if (s->g_db > s->win_hi) s->win_hi = s->g_db;
+        if (s->g_db < s->win_lo) s->win_lo = s->g_db;
+        if (fabsf(pa) > fabsf(s->punch_hold)) s->punch_hold = pa;
+        if (fabsf(ps) > fabsf(s->tail_hold)) s->tail_hold = ps;
+        if (lvl > s->level_hold) s->level_hold = lvl;
+    }
+    s->win_n += frames;
+    if (s->win_n >= 1764) {                       /* every 40 ms */
+        float v = fabsf(s->win_hi) >= fabsf(s->win_lo) ? s->win_hi : s->win_lo;
+        int mtr = 15 + (int)lroundf(v * (15.0f / MAX_DB));
+        mtr = mtr < 0 ? 0 : mtr > 30 ? 30 : mtr;
+        if (mtr != s->meter) { s->meter = mtr; s->rev++; }
+        s->win_hi = s->win_lo = 0; s->win_n = 0;
+        /* readout holds decay slowly so it can be read */
+        if (++s->slow >= 8) {                      /* ~320 ms */
+            s->slow = 0;
+            s->punch_hold *= 0.5f; s->tail_hold *= 0.5f;
+            if (fabsf(s->punch_hold) < 0.05f) s->punch_hold = 0;
+            if (fabsf(s->tail_hold) < 0.05f) s->tail_hold = 0;
+            s->level_hold = s->level_hold > -120.0f ? s->level_hold - 12.0f : -120.0f;
+            s->rev++;
+        }
+    }
+}
+
+static const mpc_engine_t ENGINE = { create, destroy, midi, set_param, get_param, render, process, NULL };
+const mpc_engine_t *mpc_engine(void) { return &ENGINE; }
