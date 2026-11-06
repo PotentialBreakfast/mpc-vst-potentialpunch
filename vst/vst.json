@@ -2,7 +2,7 @@
  "name": "PotentialPunch",
  "vendor": "PotentialBreaks",
  "uid": "PbPu",
- "version": 1001,
+ "version": 1002,
  "so": "potentialpunch.so",
  "params": "params.json",
  "layout": "layout.conf",
@@ -27,6 +27,6 @@
  "art": "html",
  "effect": true,
  "programs": {
-  "param": "preset"
+  "param": "preset_pick"
  }
 }

@@ -18,8 +18,8 @@
 #define MAX_DB 18.0f          /* the most the gain moves either way */
 
 /* ---- parameters: same order and keys as vst/params.json ---- */
-enum { P_PRESET, P_ATTACK, P_SUSTAIN, P_SPEED, P_FOCUS, P_CLIP, P_MIX, P_OUT, NP };
-static const char *KEYS[NP] = {"preset", "attack", "sustain", "speed", "focus", "clip", "mix", "output"};
+enum { P_OLD_PRESET, P_ATTACK, P_SUSTAIN, P_SPEED, P_FOCUS, P_CLIP, P_MIX, P_OUT, P_PRESET, NP };
+static const char *KEYS[NP] = {"preset", "attack", "sustain", "speed", "focus", "clip", "mix", "output", "preset_pick"};
 
 /* ---- presets: attack, sustain, speed, focus, clip, mix, output (same order as the preset param's options) ---- */
 #define NPRESET 12
@@ -92,6 +92,9 @@ static void *create(const char *data_dir) {
 static void destroy(void *inst) { free(inst); }
 static void midi(void *inst, const uint8_t *msg, int len) { (void)inst; (void)msg; (void)len; }
 
+/* "preset" (parameter 0) is an unused slot since this version: MPC's host flicks parameter 0 on STOP and on Overdub while
+ * playing, which reloaded a preset and threw away knob tweaks. The PRESET picker is "preset_pick" (last); a saved
+ * project's "preset=" still restores into it. */
 static int find(const char *key) {
     for (int i = 0; i < NP; i++) if (!strcmp(key, KEYS[i])) return i;
     return -1;
@@ -117,13 +120,14 @@ static void set_param(void *inst, const char *key, const char *val) {
             if (!eq) continue;
             *eq = 0;
             int i = find(tok);
+            if (i == P_OLD_PRESET) i = P_PRESET;
             if (i >= 0) s->p[i] = (float)atof(eq + 1);
         }
         clamp_all(s); s->rev++;
         return;
     }
     int i = find(key);
-    if (i < 0) return;
+    if (i < 0 || i == P_OLD_PRESET) return;
     if (i == P_PRESET) { int n = (int)lroundf((float)atof(val)); if (n != (int)s->p[P_PRESET]) apply_preset(s, n); return; }   /* only on a change: a project reload re-sending the same preset keeps its tweaks */
     s->p[i] = (float)atof(val);
     clamp_all(s);
@@ -143,19 +147,20 @@ static int get_param(void *inst, const char *key, char *buf, int buf_len) {
     punch_t *s = inst;
     if (!strcmp(key, "state")) {
         int n = 0;
-        for (int i = 0; i < NP && n < buf_len; i++) n += snprintf(buf + n, buf_len - n, "%s=%g;", KEYS[i], (double)s->p[i]);
+        for (int i = 1; i < NP && n < buf_len; i++) n += snprintf(buf + n, buf_len - n, "%s=%g;", KEYS[i], (double)s->p[i]);
         return n;
     }
     if (!strcmp(key, "display_rev")) return snprintf(buf, buf_len, "%u", s->rev);
     if (!strcmp(key, "meter")) return snprintf(buf, buf_len, "%d", s->meter);
     if (!strcmp(key, "reading")) return snprintf(buf, buf_len, "TAP A PRESET, THEN SHAPE ATTACK AND SUSTAIN  -  THE METER SHOWS THE CHANGE");   /* fixed: live text would need UpdateDisplays, which close MPC's PRESET menu */
-    if (!strncmp(key, "preset:", 7)) {
-        int n = atoi(key + 7);
+    if (!strncmp(key, "preset:", 7) || !strncmp(key, "preset_pick:", 12)) {
+        int n = atoi(strchr(key, ':') + 1);
         if (n >= 0 && n < NPRESET) return snprintf(buf, buf_len, "%s", PRESET_NAMES[n]);
         return 0;
     }
     int i = find(key);
     if (i < 0) return 0;
+    if (i == P_OLD_PRESET) i = P_PRESET;
     if (i == P_PRESET || i == P_SPEED || i == P_FOCUS || i == P_CLIP) return snprintf(buf, buf_len, "%d", (int)lroundf(s->p[i]));
     return snprintf(buf, buf_len, "%g", (double)s->p[i]);
 }

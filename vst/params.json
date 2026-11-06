@@ -2,7 +2,7 @@
  "params": [
   {
    "key": "preset",
-   "name": "Preset",
+   "name": "(unused)",
    "options": [
     "Punchy Drums",
     "Kick Snap",
@@ -17,7 +17,8 @@
     "Lush Sustain",
     "Flat"
    ],
-   "default": "Punchy Drums"
+   "default": "Punchy Drums",
+   "legacy": true
   },
   {
    "key": "attack",
@@ -126,6 +127,25 @@
    ],
    "default": "15",
    "live": true
+  },
+  {
+   "key": "preset_pick",
+   "name": "Preset",
+   "options": [
+    "Punchy Drums",
+    "Kick Snap",
+    "Snare Crack",
+    "Break Smack",
+    "Dry Drums",
+    "Big Room",
+    "Hat Tick",
+    "Soft Hits",
+    "Bass Pluck",
+    "Keys & Guitar",
+    "Lush Sustain",
+    "Flat"
+   ],
+   "default": "Punchy Drums"
   }
  ],
  "name": "PotentialPunch"
