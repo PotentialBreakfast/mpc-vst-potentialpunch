@@ -4,7 +4,7 @@
 
 ![PotentialPunch's page on the MPC](docs/images/potentialpunch.png)
 
-*Insert effect · MPC OS 3.x · Gen1 (32-bit) · v1.0.1*
+*Insert effect · MPC OS 3.x · Gen1 and Gen2 · v1.1.0*
 
 Free and open source (MIT), made by **PotentialBreaks**. It runs inside the MPC like its own effects, with its own touchscreen page, Q-Link control and project recall, and no computer needed while you play.
 
@@ -29,40 +29,45 @@ It reacts to how quickly each hit rises and falls, not to how loud the track is,
 
 Add it as an **insert effect** on a track, program, pad or bus. It won't be in the instrument list. Tap a preset, then fine-tune **ATTACK** and **SUSTAIN** to taste. On a whole drum bus, **Punchy Drums** or **Break Smack** is a good start.
 
+## Three looks
+
+PotentialPunch comes in three looks: **Print Plate** (the default), **Night Rack** and **Colour Block**. Open the **SETTINGS** page and tap one of the big LOOK keys. The new look shows the next time the plugin loads: take it off the track and add it again, or load your project again. Your choice is kept on your MPC for every project. The sound and the controls are the same in all three.
+
 ## Limitations
 
 - **Turning ATTACK up raises the peaks.** Leave **CLIP** on, or lower **OUTPUT**, if the track gets close to clipping.
 - **It doesn't look ahead**, so the very first moment of a hit can't be made quieter than the original; it starts working within a fraction of a millisecond.
 - **Stereo in, stereo out** (both sides shaped together), at 44.1 kHz. No added delay.
-- **Tested on an MPC One only**, and on Gen1 hardware only.
+- **Tested on an MPC One only** (Gen1). The 64-bit build for Gen2 MPCs passes Akai's own checks but hasn't been tried on a Gen2 MPC yet.
 
 ## Will it work on my MPC?
 
 | | |
 |---|---|
-| **Tested on** | MPC One (first generation) with HAKAI 3.10 firmware |
-| **Should work on** | Other first-generation (Gen1, 32-bit) standalone MPCs running **MPC OS 3.x**: One, Live, Live II, X |
-| **Not yet** | Gen2 hardware (MPC One+, Live III, Key 37, XL and others): no build yet. **MPC OS 2.x**: not supported |
-| **You need** | A way to install third-party plugins on your MPC (see below) |
+| **Tested on** | MPC One (Gen1): with Akai's plugin folder on **MPC OS 3.10.1**, and with the community set-up on HAKAI 3.10 |
+| **Should work on** | Any standalone MPC on **MPC OS 3.10.1 or later**: 32-bit (One, One+, Live, Live II, X, Key 61, Key 37) and 64-bit (Live III, XL, One Gen 2, Key 37 Gen 2). Also Gen1 MPCs on older MPC OS 3.x with the community set-up |
+| **Not supported** | **MPC OS 2.x** |
 
 The **Should work on** row is untested so far. If you try it on another model, please [tell me how it went](../../issues/new/choose).
 
 ## Install
 
-**👉 [Step-by-step install guide](INSTALL-GUIDE.md)**: start here if it's your first plugin.
+**👉 [Step-by-step install guide](INSTALL-GUIDE.md)**
 
-The short version:
-1. Download `PotentialPunch-<version>-mpc-armv7.zip` from [**Releases**](../../releases) and leave it zipped.
-2. Install it with the free **MPC Plugin Installer** from [Open MPC](https://open-mpc.github.io/): connect, drop the zip in, press Install. Or install over SSH (see the guide).
-3. **Save your project first.** Installing restarts the MPC app.
-4. **PotentialPunch** is an **insert effect**: look in the insert effects, not the instrument list.
+**On MPC OS 3.10.1 or later** (any standalone MPC, no hacking):
+1. Download `PotentialPunch-<version>-akai-vst2.zip` from [**Releases**](../../releases) and unzip it on your computer.
+2. On the MPC, turn on **Preferences → Enhancements (Beta) → Enable Enhancements** and **External Plugin Support**.
+3. Copy the folder **PotentialBreaks - VST - PotentialPunch** into a folder called **VST2 Plugins** at the top of a USB stick, SD card or the internal drive, and restart.
+4. It's in **External Plugins**, as an effect.
 
-Stuck? The [**FAQ**](FAQ.md) covers the common problems.
+**On older MPC OS 3.x (Gen1, community set-up):** download `PotentialPunch-<version>-mpc-armv7.zip` instead and install it with the free **MPC Plugin Installer** from [Open MPC](https://open-mpc.github.io/), or over SSH (see the guide). Save your project first, because installing restarts the MPC app.
+
+Install it one way only, or it shows up twice. Stuck? The [**FAQ**](FAQ.md) covers the common problems.
 
 ## Also good to know
 
 - **Made by one person, tested on one MPC.** It works well for me, but you may hit something I haven't. Please tell me if you do.
-- **Plugins must be allowed to run on your MPC.** Stock firmware doesn't load third-party plugins until it has been set up for them (see [Open MPC](https://open-mpc.github.io/)). After a firmware update, you may have to redo that setup.
+- **Plugins must be allowed to run on your MPC.** On MPC OS 3.10.1 or later, that's the **External Plugin Support** switch in Preferences → Enhancements (Beta). On older firmware, your MPC needs the community set-up from [Open MPC](https://open-mpc.github.io/), which you may have to redo after a firmware update.
 - **No warranty.** It's free and comes as it is. Back up your projects.
 
 ## Ideas, bugs and criticism: all welcome
@@ -81,6 +86,7 @@ You don't need to be technical. Short messages are great. See [CONTRIBUTING.md](
 - **[PotentialWax](https://github.com/PotentialBreakfast/mpc-vst-potentialwax)**: Melodic sampler: pick or dig a song from your library, 16 cues found for you, matched to your tempo and key.
 - **[PotentialNoise](https://github.com/PotentialBreakfast/mpc-vst-potentialnoise)**: Calibrated pink noise reference for mixing: one-tap RMS levels, mono/stereo, full or limited range, live meter.
 - **[PotentialHeat](https://github.com/PotentialBreakfast/mpc-vst-potentialheat)**: Soft clipper and bus saturator: warmth, glue and loudness without clipping, with one-tap presets.
+- **[PotentialWarp](https://github.com/PotentialBreakfast/mpc-vst-potentialwarp)**: Tempo-locked mangler: stutters, half speed, tape stops, spinbacks, reverses and gates in 16 one-tap patterns.
 - **[MPC TOOLS](https://github.com/PotentialBreakfast/mpc-tools)**: a free second-screen app for Windows: your MPC's screen live on your PC (and in OBS), file transfer, your PC's folders on the MPC, and one-click "save the last 60 seconds".
 
 ## Build it yourself
@@ -90,7 +96,7 @@ See [BUILD.md](BUILD.md).
 ## Credits
 
 - Built on **[mpc-vst-plugins](https://github.com/sd88me/mpc-vst-plugins)** by sd88me (MIT), the open kit that makes MPC plugins possible: the plugin wrapper, skin builder and installer.
-- Fonts: **Barlow** and **Barlow Condensed** by Jeremy Tribby (SIL Open Font License 1.1), in `vst/skin/fonts/`.
+- Fonts: **Jost**, **DM Mono**, **IBM Plex Sans Condensed**, **IBM Plex Mono**, **Bricolage Grotesque** and **Space Mono** (SIL Open Font License 1.1), in `vst/skin/looks/fonts/` with their licences.
 - The dark look grew out of the theme I made for sd88me's Lucky Dip.
 - Made with help from Claude (Anthropic).
 

@@ -146,6 +146,16 @@
     "Flat"
    ],
    "default": "Punchy Drums"
+  },
+  {
+   "key": "theme",
+   "name": "Look",
+   "options": [
+    "Print Plate",
+    "Night Rack",
+    "Colour Block"
+   ],
+   "default": 0
   }
  ],
  "name": "PotentialPunch"

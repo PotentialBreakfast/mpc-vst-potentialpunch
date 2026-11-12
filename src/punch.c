@@ -12,6 +12,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "engine.h"
+#include "../shared/looks/potential_theme.h"   /* the LOOK switch (parameter "theme") */
 
 #define FS 44100.0f
 #define PI_F 3.14159265f
@@ -68,6 +69,7 @@ typedef struct {
     float win_hi, win_lo, punch_hold, tail_hold, level_hold;
     int win_n, meter, slow;
     unsigned rev;
+    pt_theme_t theme;   /* which look MPC loads next time: not part of the saved state */
 } punch_t;
 
 static void apply_preset(punch_t *s, int n) {
@@ -79,9 +81,9 @@ static void apply_preset(punch_t *s, int n) {
 }
 
 static void *create(const char *data_dir) {
-    (void)data_dir;
     punch_t *s = calloc(1, sizeof *s);
     if (!s) return NULL;
+    pt_theme_init(&s->theme, data_dir);
     apply_preset(s, 0);
     s->pending = 0;
     s->s_mix = s->p[P_MIX] / 100.0f; s->s_out = powf(10.0f, s->p[P_OUT] / 20.0f);
@@ -113,6 +115,7 @@ static void clamp_all(punch_t *s) {
 
 static void set_param(void *inst, const char *key, const char *val) {
     punch_t *s = inst;
+    if (pt_theme_set(&s->theme, key, val)) return;
     if (!strcmp(key, "state")) {   /* "key=value;key=value;..." -- restores values as saved, no preset reload */
         char tmp[512]; snprintf(tmp, sizeof tmp, "%s", val);
         for (char *tok = strtok(tmp, ";"); tok; tok = strtok(NULL, ";")) {
@@ -145,6 +148,7 @@ static const char *PRESET_NAMES[NPRESET] = {"Punchy Drums", "Kick Snap", "Snare 
 
 static int get_param(void *inst, const char *key, char *buf, int buf_len) {
     punch_t *s = inst;
+    { int pt_n = pt_theme_get(&s->theme, key, buf, buf_len); if (pt_n) return pt_n; }
     if (!strcmp(key, "state")) {
         int n = 0;
         for (int i = 1; i < NP && n < buf_len; i++) n += snprintf(buf + n, buf_len - n, "%s=%g;", KEYS[i], (double)s->p[i]);
