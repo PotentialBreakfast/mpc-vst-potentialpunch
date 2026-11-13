@@ -2,7 +2,7 @@
  "name": "PotentialPunch",
  "vendor": "PotentialBreaks",
  "uid": "PbPu",
- "version": 1100,
+ "version": 1101,
  "so": "potentialpunch.so",
  "params": "params.json",
  "layout": "layout.conf",

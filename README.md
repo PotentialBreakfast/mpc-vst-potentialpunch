@@ -4,7 +4,7 @@
 
 ![PotentialPunch's page on the MPC](docs/images/potentialpunch.png)
 
-*Insert effect · MPC OS 3.x · Gen1 and Gen2 · v1.1.0*
+*Insert effect · MPC OS 3.x · Gen1 and Gen2 · v1.1.1*
 
 Free and open source (MIT), made by **PotentialBreaks**. It runs inside the MPC like its own effects, with its own touchscreen page, Q-Link control and project recall, and no computer needed while you play.
 
