@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0 (2026-11)
+- **AUTO LEVEL** (OUTPUT panel): measures how loud the sound is going in and coming out (over about a second) and evens them up, so a punchier setting isn't just louder. On for a new copy; projects saved before 1.3.0 keep it off so they sound as they did.
+- **Drum-bus pair presets**: Boom Bap Bus, Lo-Fi Bus, Modern Bus and Glue Bus. They're in PotentialHeat 1.3.0 too, made to work together: put Punch first and Heat after it on your drum bus and pick the same name in each.
+- The preset keys are a little narrower to fit the four new ones. One parameter was added at the end of the list (Auto Level); saved projects open as before.
+
 ## 1.2.0 (2026-11)
 - **ROLL**: one tap for a random setting that still sounds good: attack, sustain, speed, focus and mix. **MILD**, **MEDIUM** or **WILD** under it sets how far it goes (MILD adds a little snap, WILD can carve the hits right up). OUTPUT is kept at 0 dB. Keep rolling until you like it, then fine-tune.
 - The preset keys are a little narrower to make room for it. Two parameters were added at the end of the list (Roll, Roll Wildness); saved projects open as before.

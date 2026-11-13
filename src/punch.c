@@ -4,6 +4,7 @@
  *   SPEED  TIGHT / MEDIUM / SLOW: how long the "attack" part lasts and how long the tail is followed
  *   FOCUS  FULL / LOWS / HIGHS: what the detector listens to (the whole signal is always shaped)
  *   CLIP   a soft clipper after the shaper, to catch the extra peaks (and add a little bite)
+ *   AUTO LEVEL (1.3.0)  measures the loudness in and out and evens it up, so a punchier setting isn't just louder
  * then dry/wet MIX and OUTPUT. A PRESET list (also MPC's PRESET menu) sets them all in one tap.
  * 44.1 kHz, interleaved int16 stereo, 128-frame blocks (wrapper/engine.h). */
 #include <math.h>
@@ -19,11 +20,12 @@
 #define MAX_DB 18.0f          /* the most the gain moves either way */
 
 /* ---- parameters: same order and keys as vst/params.json ---- */
-enum { P_OLD_PRESET, P_ATTACK, P_SUSTAIN, P_SPEED, P_FOCUS, P_CLIP, P_MIX, P_OUT, P_PRESET, P_DICE, P_WILD, NP };
-static const char *KEYS[NP] = {"preset", "attack", "sustain", "speed", "focus", "clip", "mix", "output", "preset_pick", "dice", "wild"};
+enum { P_OLD_PRESET, P_ATTACK, P_SUSTAIN, P_SPEED, P_FOCUS, P_CLIP, P_MIX, P_OUT, P_PRESET, P_DICE, P_WILD, P_MATCH, NP };
+static const char *KEYS[NP] = {"preset", "attack", "sustain", "speed", "focus", "clip", "mix", "output", "preset_pick", "dice", "wild",
+                               "match"};
 
 /* ---- presets: attack, sustain, speed, focus, clip, mix, output (same order as the preset param's options) ---- */
-#define NPRESET 12
+#define NPRESET 16
 static const float PRESETS[NPRESET][7] = {
     { 45, -15, 1, 0, 1, 100,  0},   /* Punchy Drums */
     { 60, -25, 0, 1, 0, 100, -1},   /* Kick Snap */
@@ -37,6 +39,11 @@ static const float PRESETS[NPRESET][7] = {
     { 25,   0, 0, 0, 0,  80,  0},   /* Keys & Guitar */
     {-30,  45, 2, 0, 0, 100, -2},   /* Lush Sustain */
     {  0,   0, 1, 0, 0, 100,  0},   /* Flat */
+    /* 1.3.0: drum-bus pairs. Pick the same name in PotentialHeat, put Punch first and Heat after it on the bus */
+    { 35, -10, 1, 0, 1, 100,  0},   /* Boom Bap Bus */
+    { 15,  25, 2, 1, 0, 100,  0},   /* Lo-Fi Bus */
+    { 55, -25, 0, 0, 1, 100,  0},   /* Modern Bus */
+    { 10,  10, 1, 0, 0,  60,  0},   /* Glue Bus */
 };
 
 /* speed: how long the slow follower takes to catch up (= length of the "attack" part), the short release,
@@ -57,6 +64,20 @@ static inline float flog2(float x) {
 }
 static inline float todb(float x) { return 6.0205999f * flog2(x + 1e-9f); }
 
+
+/* ---- AUTO LEVEL: measures how loud the dry and processed sound are (about the last second) and turns the processed
+ * sound by the difference, so louder never just sounds better. Holds still in near-silence. ---- */
+typedef struct { float e_in, e_out, g; } lm_t;
+static inline float lm_step(lm_t *m, float p_in, float p_out, float k_e, float k_g, float g_lo, float g_hi) {
+    m->e_in += (p_in - m->e_in) * k_e; m->e_out += (p_out - m->e_out) * k_e;
+    if (m->e_in > 1e-5f && m->e_out > 1e-9f) {   /* above about -50 dBFS */
+        float want = sqrtf(m->e_in / m->e_out);
+        want = want < g_lo ? g_lo : want > g_hi ? g_hi : want;
+        m->g += (want - m->g) * k_g;
+    }
+    return m->g;
+}
+
 typedef struct {
     float p[NP];
     int pending;                   /* keys to report to the host after a preset (bit i = param i) */
@@ -69,6 +90,7 @@ typedef struct {
     float win_hi, win_lo, punch_hold, tail_hold, level_hold;
     int win_n, meter, slow;
     unsigned rev;
+    lm_t lm; float s_lm;   /* AUTO LEVEL */
     pt_theme_t theme;   /* which look MPC loads next time: not part of the saved state */
 } punch_t;
 
@@ -93,6 +115,7 @@ static void *create(const char *data_dir) {
     apply_preset(s, 0);
     s->pending = 0;
     s->p[P_WILD] = 1;
+    s->p[P_MATCH] = 1; s->lm.g = 1.0f; s->s_lm = 1.0f;   /* AUTO LEVEL on for a new copy */
     dice_rng ^= (uint32_t)(uintptr_t)s;
     s->s_mix = s->p[P_MIX] / 100.0f; s->s_out = powf(10.0f, s->p[P_OUT] / 20.0f);
     s->s_a = s->p[P_ATTACK] / 100.0f; s->s_s = s->p[P_SUSTAIN] / 100.0f;
@@ -120,6 +143,7 @@ static void clamp_all(punch_t *s) {
     s->p[P_MIX] = clampf(s->p[P_MIX], 0, 100);
     s->p[P_OUT] = clampf(s->p[P_OUT], -12, 12);
     s->p[P_WILD] = clampf(roundf(s->p[P_WILD]), 0, 2);
+    s->p[P_MATCH] = clampf(roundf(s->p[P_MATCH]), 0, 1);
     s->p[P_DICE] = 0;
 }
 
@@ -145,6 +169,7 @@ static void set_param(void *inst, const char *key, const char *val) {
     if (pt_theme_set(&s->theme, key, val)) return;
     if (!strcmp(key, "state")) {   /* "key=value;key=value;..." -- restores values as saved, no preset reload */
         char tmp[512]; snprintf(tmp, sizeof tmp, "%s", val);
+        s->p[P_MATCH] = 0;   /* a project from before 1.3.0 had no AUTO LEVEL: it sounds as it did */
         for (char *tok = strtok(tmp, ";"); tok; tok = strtok(NULL, ";")) {
             char *eq = strchr(tok, '=');
             if (!eq) continue;
@@ -172,7 +197,8 @@ int mpc_engine_changed(void *inst, char *key, int len) {
 }
 
 static const char *PRESET_NAMES[NPRESET] = {"Punchy Drums", "Kick Snap", "Snare Crack", "Break Smack", "Dry Drums", "Big Room",
-                                            "Hat Tick", "Soft Hits", "Bass Pluck", "Keys & Guitar", "Lush Sustain", "Flat"};
+                                            "Hat Tick", "Soft Hits", "Bass Pluck", "Keys & Guitar", "Lush Sustain", "Flat",
+                                            "Boom Bap Bus", "Lo-Fi Bus", "Modern Bus", "Glue Bus"};
 
 static int get_param(void *inst, const char *key, char *buf, int buf_len) {
     punch_t *s = inst;
@@ -194,7 +220,7 @@ static int get_param(void *inst, const char *key, char *buf, int buf_len) {
     if (i < 0) return 0;
     if (i == P_OLD_PRESET) i = P_PRESET;
     if (i == P_DICE) return snprintf(buf, buf_len, "0");
-    if (i == P_PRESET || i == P_SPEED || i == P_FOCUS || i == P_CLIP || i == P_WILD) return snprintf(buf, buf_len, "%d", (int)lroundf(s->p[i]));
+    if (i == P_PRESET || i == P_SPEED || i == P_FOCUS || i == P_CLIP || i == P_WILD || i == P_MATCH) return snprintf(buf, buf_len, "%d", (int)lroundf(s->p[i]));
     return snprintf(buf, buf_len, "%g", (double)s->p[i]);
 }
 
@@ -218,6 +244,8 @@ static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frame
     const float k_lp = onepole_k(180.0f), k_hp = onepole_k(1800.0f), k_g = tc(0.0005f), k_c = tc(0.02f);
     const float t_mix = s->p[P_MIX] / 100.0f, t_out = powf(10.0f, s->p[P_OUT] / 20.0f);
     const float t_a = s->p[P_ATTACK] / 100.0f, t_s = s->p[P_SUSTAIN] / 100.0f;
+    const float k_e = tc(0.8f), k_lg = tc(0.25f);
+    const int matching = s->p[P_MATCH] > 0.5f;
 
     for (int n = 0; n < frames; n++) {
         float l = in_lr[2 * n] * (1.0f / 32768.0f), r = in_lr[2 * n + 1] * (1.0f / 32768.0f);
@@ -247,6 +275,11 @@ static void process(void *inst, const int16_t *in_lr, int16_t *out_lr, int frame
 
         float yl = l * g, yr = r * g;
         if (clip) { yl = soft_clip(yl); yr = soft_clip(yr); }
+        {   /* AUTO LEVEL: the shaped sound evened up with the dry (-12 to +6 dB) */
+            float gm = lm_step(&s->lm, 0.5f * (l * l + r * r), 0.5f * (yl * yl + yr * yr), k_e, k_lg, 0.25f, 2.0f);
+            s->s_lm += ((matching ? gm : 1.0f) - s->s_lm) * k_c;
+            yl *= s->s_lm; yr *= s->s_lm;
+        }
         float ol = (l + (yl - l) * s->s_mix) * s->s_out, orr = (r + (yr - r) * s->s_mix) * s->s_out;
         if (!(ol == ol)) ol = 0;
         if (!(orr == orr)) orr = 0;

@@ -143,7 +143,11 @@
         "Bass Pluck",
         "Keys & Guitar",
         "Lush Sustain",
-        "Flat"
+        "Flat",
+        "Boom Bap Bus",
+        "Lo-Fi Bus",
+        "Modern Bus",
+        "Glue Bus"
       ],
       "default": "Punchy Drums"
     },
@@ -172,6 +176,15 @@
         "WILD"
       ],
       "default": "MEDIUM"
+    },
+    {
+      "key": "match",
+      "name": "Auto Level",
+      "options": [
+        "OFF",
+        "ON"
+      ],
+      "default": "ON"
     }
   ],
   "name": "PotentialPunch"

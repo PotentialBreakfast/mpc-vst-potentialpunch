@@ -19,12 +19,15 @@ Free and open source (MIT), made by **PotentialBreaks**. It runs inside the MPC 
 | **SPEED** | **TIGHT**, **MEDIUM** or **SLOW**: how long the "attack" part lasts and how long the tail is followed |
 | **FOCUS** | What it listens to: **FULL**, **LOWS** (kicks, bass) or **HIGHS** (snares, hats). The whole sound is always shaped |
 | **CLIP** | A soft clipper after the shaper, to catch the extra peaks and add a little bite |
+| **AUTO LEVEL** | Measures how loud the sound is going in and coming out and evens them up, so a punchier setting isn't just louder. On for a new copy; switch it off to let ATTACK make things louder |
 | **MIX / OUTPUT** | Blend with the original sound, set the level |
 | **ROLL** | One tap for a random setting that still sounds good. **MILD**, **MEDIUM** or **WILD** under it sets how far it goes |
 
 It reacts to how quickly each hit rises and falls, not to how loud the track is, so it works the same on quiet and loud material. A live meter shows the boost or cut as it happens.
 
-**Presets** (one tap on the page, and in the MPC's PRESET menu): Punchy Drums, Kick Snap, Snare Crack, Break Smack, Dry Drums, Big Room, Hat Tick, Soft Hits, Bass Pluck, Keys & Guitar, Lush Sustain and Flat.
+**Presets** (one tap on the page, and in the MPC's PRESET menu): Punchy Drums, Kick Snap, Snare Crack, Break Smack, Dry Drums, Big Room, Hat Tick, Soft Hits, Bass Pluck, Keys & Guitar, Lush Sustain and Flat, plus the drum-bus pairs.
+
+**Drum-bus pairs:** Boom Bap Bus, Lo-Fi Bus, Modern Bus and Glue Bus are in both PotentialPunch and PotentialHeat, made to work together. Put Punch first and Heat after it on your drum bus, and pick the same name in each.
 
 ## How to use it
 
@@ -36,7 +39,7 @@ PotentialPunch comes in three looks: **Print Plate** (the default), **Night Rack
 
 ## Limitations
 
-- **Turning ATTACK up raises the peaks.** Leave **CLIP** on, or lower **OUTPUT**, if the track gets close to clipping.
+- **Turning ATTACK up raises the peaks.** AUTO LEVEL keeps the average loudness the same, but the peaks still stick out more: leave **CLIP** on, or lower **OUTPUT**, if the track gets close to clipping.
 - **It doesn't look ahead**, so the very first moment of a hit can't be made quieter than the original; it starts working within a fraction of a millisecond.
 - **Stereo in, stereo out** (both sides shaped together), at 44.1 kHz. No added delay.
 - **Tested on an MPC One only** (Gen1). The 64-bit build for Gen2 MPCs passes Akai's own checks but hasn't been tried on a Gen2 MPC yet.
