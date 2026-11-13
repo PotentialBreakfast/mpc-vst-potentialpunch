@@ -19,8 +19,8 @@
 #define MAX_DB 18.0f          /* the most the gain moves either way */
 
 /* ---- parameters: same order and keys as vst/params.json ---- */
-enum { P_OLD_PRESET, P_ATTACK, P_SUSTAIN, P_SPEED, P_FOCUS, P_CLIP, P_MIX, P_OUT, P_PRESET, NP };
-static const char *KEYS[NP] = {"preset", "attack", "sustain", "speed", "focus", "clip", "mix", "output", "preset_pick"};
+enum { P_OLD_PRESET, P_ATTACK, P_SUSTAIN, P_SPEED, P_FOCUS, P_CLIP, P_MIX, P_OUT, P_PRESET, P_DICE, P_WILD, NP };
+static const char *KEYS[NP] = {"preset", "attack", "sustain", "speed", "focus", "clip", "mix", "output", "preset_pick", "dice", "wild"};
 
 /* ---- presets: attack, sustain, speed, focus, clip, mix, output (same order as the preset param's options) ---- */
 #define NPRESET 12
@@ -72,6 +72,12 @@ typedef struct {
     pt_theme_t theme;   /* which look MPC loads next time: not part of the saved state */
 } punch_t;
 
+static uint32_t dice_rng = 0x9e3779b9u;
+static float dice_u(void) { dice_rng ^= dice_rng << 13; dice_rng ^= dice_rng >> 17; dice_rng ^= dice_rng << 5; return (dice_rng >> 8) / 16777216.0f; }
+static float dice_in(float lo, float hi) { return lo + (hi - lo) * dice_u(); }
+static int dice_pick(const int *w, int n) { int t = 0; for (int i = 0; i < n; i++) t += w[i]; float r = dice_u() * (float)t; for (int i = 0; i < n; i++) { if (r < (float)w[i]) return i; r -= (float)w[i]; } return n - 1; }
+static float dice_step(float x, float step) { return roundf(x / step) * step; }
+
 static void apply_preset(punch_t *s, int n) {
     if (n < 0 || n >= NPRESET) return;
     s->p[P_PRESET] = (float)n;
@@ -86,6 +92,8 @@ static void *create(const char *data_dir) {
     pt_theme_init(&s->theme, data_dir);
     apply_preset(s, 0);
     s->pending = 0;
+    s->p[P_WILD] = 1;
+    dice_rng ^= (uint32_t)(uintptr_t)s;
     s->s_mix = s->p[P_MIX] / 100.0f; s->s_out = powf(10.0f, s->p[P_OUT] / 20.0f);
     s->s_a = s->p[P_ATTACK] / 100.0f; s->s_s = s->p[P_SUSTAIN] / 100.0f;
     s->meter = 15; s->level_hold = -120.0f;
@@ -111,6 +119,25 @@ static void clamp_all(punch_t *s) {
     s->p[P_CLIP] = clampf(roundf(s->p[P_CLIP]), 0, 1);
     s->p[P_MIX] = clampf(s->p[P_MIX], 0, 100);
     s->p[P_OUT] = clampf(s->p[P_OUT], -12, 12);
+    s->p[P_WILD] = clampf(roundf(s->p[P_WILD]), 0, 2);
+    s->p[P_DICE] = 0;
+}
+
+/* ---- DICE: ROLL makes a new setting; WILD (MILD / MEDIUM / WILD) says how far it goes ---- */
+
+static void roll(punch_t *s) {
+    int w = (int)s->p[P_WILD];
+    static const float ATK[3][2] = {{0, 40}, {-40, 70}, {-100, 100}}, SUS[3][2] = {{-30, 20}, {-60, 50}, {-100, 100}},
+                       MIX[3] = {80, 60, 40};
+    static const int SPD[3][3] = {{5, 5, 0}, {4, 4, 2}, {1, 1, 1}}, FOC[3][3] = {{7, 2, 1}, {4, 3, 3}, {1, 1, 1}};
+    s->p[P_ATTACK] = dice_step(dice_in(ATK[w][0], ATK[w][1]), 1);
+    s->p[P_SUSTAIN] = dice_step(dice_in(SUS[w][0], SUS[w][1]), 1);
+    s->p[P_SPEED] = (float)dice_pick(SPD[w], 3);
+    s->p[P_FOCUS] = (float)dice_pick(FOC[w], 3);
+    if (w) s->p[P_CLIP] = dice_u() < 0.5f ? 0.0f : 1.0f;
+    s->p[P_MIX] = dice_step(dice_in(MIX[w], 100), 1);
+    s->p[P_OUT] = 0;
+    s->pending |= 0xfe; s->rev++;
 }
 
 static void set_param(void *inst, const char *key, const char *val) {
@@ -131,7 +158,8 @@ static void set_param(void *inst, const char *key, const char *val) {
     }
     int i = find(key);
     if (i < 0 || i == P_OLD_PRESET) return;
-    if (i == P_PRESET) { int n = (int)lroundf((float)atof(val)); if (n != (int)s->p[P_PRESET]) apply_preset(s, n); return; }   /* only on a change: a project reload re-sending the same preset keeps its tweaks */
+    if (i == P_PRESET) { int n = (int)lroundf((float)atof(val)); if (n != (int)s->p[P_PRESET]) apply_preset(s, n); return; }
+    if (i == P_DICE) { if (atof(val) > 0.5) roll(s); return; }   /* a trigger: each press rolls */   /* only on a change: a project reload re-sending the same preset keeps its tweaks */
     s->p[i] = (float)atof(val);
     clamp_all(s);
 }
@@ -165,7 +193,8 @@ static int get_param(void *inst, const char *key, char *buf, int buf_len) {
     int i = find(key);
     if (i < 0) return 0;
     if (i == P_OLD_PRESET) i = P_PRESET;
-    if (i == P_PRESET || i == P_SPEED || i == P_FOCUS || i == P_CLIP) return snprintf(buf, buf_len, "%d", (int)lroundf(s->p[i]));
+    if (i == P_DICE) return snprintf(buf, buf_len, "0");
+    if (i == P_PRESET || i == P_SPEED || i == P_FOCUS || i == P_CLIP || i == P_WILD) return snprintf(buf, buf_len, "%d", (int)lroundf(s->p[i]));
     return snprintf(buf, buf_len, "%g", (double)s->p[i]);
 }
 

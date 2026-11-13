@@ -20,6 +20,7 @@ Free and open source (MIT), made by **PotentialBreaks**. It runs inside the MPC 
 | **FOCUS** | What it listens to: **FULL**, **LOWS** (kicks, bass) or **HIGHS** (snares, hats). The whole sound is always shaped |
 | **CLIP** | A soft clipper after the shaper, to catch the extra peaks and add a little bite |
 | **MIX / OUTPUT** | Blend with the original sound, set the level |
+| **ROLL** | One tap for a random setting that still sounds good. **MILD**, **MEDIUM** or **WILD** under it sets how far it goes |
 
 It reacts to how quickly each hit rises and falls, not to how loud the track is, so it works the same on quiet and loud material. A live meter shows the boost or cut as it happens.
 

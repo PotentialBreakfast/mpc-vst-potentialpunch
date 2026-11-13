@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0 (2026-11)
+- **ROLL**: one tap for a random setting that still sounds good: attack, sustain, speed, focus and mix. **MILD**, **MEDIUM** or **WILD** under it sets how far it goes (MILD adds a little snap, WILD can carve the hits right up). OUTPUT is kept at 0 dB. Keep rolling until you like it, then fine-tune.
+- The preset keys are a little narrower to make room for it. Two parameters were added at the end of the list (Roll, Roll Wildness); saved projects open as before.
+
 ## 1.1.2 (2026-11)
 - **CPU figure recorded.** Measured on an MPC One with the Open MPC bench: **PASS**, 3.0% of an audio block at the 99th percentile and 4.7% at worst, so it runs comfortably alongside a full project. It shows on the catalog card and in INSTALL.md.
 - Nothing else changed: same sound, controls and saved projects as 1.1.1.
