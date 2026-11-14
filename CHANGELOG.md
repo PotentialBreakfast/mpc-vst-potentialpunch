@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1 (2026-11-14)
+- **Fixed: SAVE, then a USER slot, saved nothing.** One touch on the SAVE button reaches the plugin as two quick flips (on, then straight back off), so SAVE switched itself off before you tapped a slot. The second flip is now ignored: SAVE stays lit ("NOW TAP A SLOT") until you tap a slot, empty or full. Tap SAVE again to cancel.
+- Sound, controls, saved projects and your USER slots are unchanged.
+
 ## 1.5.0 (2026-11)
 - **USER presets.** A new USER page with 8 slots: tap **SAVE**, then a slot, to keep the sound you have now; tap a slot to bring it back. Filled slots read USER 1 to USER 8, empty ones EMPTY, and the slot you loaded last is lit. No typing.
 - The slots are kept in a file beside your VST2 Plugins folder (`PotentialSuite Presets/PotentialPunch.txt`), so every project and every copy of the plugin sees the same slots, and updating the plugin keeps them.
