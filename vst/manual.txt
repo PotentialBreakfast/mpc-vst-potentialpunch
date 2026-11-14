@@ -1,0 +1,62 @@
+= START
+# PotentialPunch: transient shaper
+Makes every hit snap harder or softer, and pulls the tail up or tightens it, with no threshold to set. It reacts to how quickly each hit rises and falls, not to how loud the track is, so it works the same on quiet and loud material.
+
+- Add it as an insert effect on a track, program, pad or bus. It is not in the instrument list.
+- Tap a preset on the PUNCH page, then fine-tune ATTACK and SUSTAIN.
+- On a whole drum bus, Punchy Drums or Break Smack is a good start.
+- The meter shows the boost or cut as it happens.
+
+The full PotentialSuite manual: github.com/PotentialBreakfast/potential-plugins
+
+= CONTROLS
+# Controls
+- ATTACK: up for more snap at the start of each hit (to about +18 dB), down to soften it.
+- SUSTAIN: up to bring the tail and the room up, down to tighten and dry things out.
+- SPEED: TIGHT, MEDIUM or SLOW. How long the attack part lasts and how long the tail is followed.
+- FOCUS: what it listens to. FULL, LOWS (kicks, bass) or HIGHS (snares, hats). The whole sound is always shaped.
+- CLIP: a soft clipper after the shaper, to catch the extra peaks and add a little bite.
+- AUTO LEVEL: evens the loudness going in and coming out, so a punchier setting is not just louder.
+- MIX: blend with the original sound. OUTPUT: the level after the effect.
+- ROLL: one tap for a random setting that still sounds good. MILD, MEDIUM or WILD sets how far it goes.
+
+= PRESETS
+# Presets
+One tap on the PUNCH page, and in the MPC's PRESET menu. Each one is a starting point.
+
+- Drums: Punchy Drums, Kick Snap, Snare Crack, Break Smack, Dry Drums, Big Room, Hat Tick, Soft Hits.
+- Other sounds: Bass Pluck, Keys & Guitar, Lush Sustain. Flat switches the shaping off.
+- Drum-bus pairs: Boom Bap Bus, Lo-Fi Bus, Modern Bus and Glue Bus are in PotentialHeat too. Put Punch first and Heat after it on your drum bus, and pick the same name in each.
+- Chain presets: 90s Stab, Break Bus and Dub Drums. See the CHAINS page.
+
+= CHAINS
+# FX chains
+Put the plugins on a track's inserts in the order shown, then pick the same preset name in each one.
+
+- 90s STAB (chopped horns, keys and vocal stabs): Grit > PUNCH > Bleed > Patina
+- BREAK BUS (a boom-bap drum bus): PUNCH > Grit > Bleed > Patina
+- DUB DRUMS (lo-fi dub drums): Patina > PUNCH > Bleed > Grit
+- DUSTY LOOP (soul, jazz and library loops): Bleed > Patina > Grit. Punch is not in this one.
+
+Here the name is on the PRESETS buttons. In Patina, Grit and Bleed it is in the MPC's PRESET menu.
+
+Rules of thumb: Punch early, Bleed before Patina, echo and chop last, one noise source per chain, and match levels with OUTPUT before you decide.
+
+= USER
+# User presets
+- To save: open the USER page, tap SAVE, then tap a slot. The slot now reads USER and its number.
+- To load: tap a slot. The slot you loaded last is lit.
+- Saving to a slot that is already filled replaces it straight away.
+- The 8 slots are kept on the drive the plugin is on, in a folder called PotentialSuite Presets. Every project and every copy of the plugin sees them, and updating the plugin keeps them.
+- A chain of your own: save each plugin's part to the same slot number, for example USER 3 in Punch, Grit and Bleed. Later, tap USER 3 in each.
+- A slot keeps the knobs and switches. It does not keep the ROLL setting or the look.
+
+= HELP
+# Good to know
+- Q-Links: ATTACK, SUSTAIN, MIX, OUTPUT, PRESET, SPEED, FOCUS and CLIP.
+- Every setting is saved with your project.
+- Looks: Print Plate, Night Rack or Colour Block, on the SETTINGS page. A new look shows the next time the plugin loads.
+- Turning ATTACK up raises the peaks. Leave CLIP on, or lower OUTPUT, if the track gets close to clipping.
+- Stereo in, stereo out, at 44.1 kHz. No added delay.
+
+Ideas, bugs and criticism are all welcome: github.com/PotentialBreakfast/mpc-vst-potentialpunch

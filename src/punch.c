@@ -14,6 +14,8 @@
 #include <string.h>
 #include "engine.h"
 #include "../shared/looks/potential_theme.h"   /* the LOOK switch (parameter "theme") */
+#include "../shared/potential_user.h"          /* the USER preset slots (1.5.0) */
+#include "../shared/potential_manual.h"        /* the MANUAL tab's page (1.5.0) */
 
 #define FS 44100.0f
 #define PI_F 3.14159265f
@@ -96,6 +98,8 @@ typedef struct {
     unsigned rev;
     lm_t lm; float s_lm;   /* AUTO LEVEL */
     pt_theme_t theme;   /* which look MPC loads next time: not part of the saved state */
+    pu_user_t user;     /* USER preset slots: kept in a file, not in the saved state */
+    pm_manual_t manual; /* the MANUAL tab's page: not part of the sound */
 } punch_t;
 
 static uint32_t dice_rng = 0x9e3779b9u;
@@ -116,6 +120,7 @@ static void *create(const char *data_dir) {
     punch_t *s = calloc(1, sizeof *s);
     if (!s) return NULL;
     pt_theme_init(&s->theme, data_dir);
+    pu_init(&s->user, data_dir, "PotentialPunch");
     apply_preset(s, 0);
     s->pending = 0;
     s->p[P_WILD] = 1;
@@ -151,6 +156,26 @@ static void clamp_all(punch_t *s) {
     s->p[P_DICE] = 0;
 }
 
+/* "key=value;key=value;..." -- restores values as saved (a project's state, or a USER slot) */
+static void restore_state(punch_t *s, const char *val) {
+    char tmp[PU_STATE_MAX]; snprintf(tmp, sizeof tmp, "%s", val);
+    s->p[P_MATCH] = 0;   /* a project from before 1.3.0 had no AUTO LEVEL: it sounds as it did */
+    for (char *tok = strtok(tmp, ";"); tok; tok = strtok(NULL, ";")) {
+        char *eq = strchr(tok, '=');
+        if (!eq) continue;
+        *eq = 0;
+        int i = find(tok);
+        if (i == P_OLD_PRESET) i = P_PRESET;
+        if (i >= 0) s->p[i] = (float)atof(eq + 1);
+    }
+    clamp_all(s); s->rev++;
+}
+static int get_state(const punch_t *s, char *buf, int buf_len) {
+    int n = 0;
+    for (int i = 1; i < NP && n < buf_len; i++) n += snprintf(buf + n, buf_len - n, "%s=%g;", KEYS[i], (double)s->p[i]);
+    return n;
+}
+
 /* ---- DICE: ROLL makes a new setting; WILD (MILD / MEDIUM / WILD) says how far it goes ---- */
 
 static void roll(punch_t *s) {
@@ -171,20 +196,17 @@ static void roll(punch_t *s) {
 static void set_param(void *inst, const char *key, const char *val) {
     punch_t *s = inst;
     if (pt_theme_set(&s->theme, key, val)) return;
-    if (!strcmp(key, "state")) {   /* "key=value;key=value;..." -- restores values as saved, no preset reload */
-        char tmp[512]; snprintf(tmp, sizeof tmp, "%s", val);
-        s->p[P_MATCH] = 0;   /* a project from before 1.3.0 had no AUTO LEVEL: it sounds as it did */
-        for (char *tok = strtok(tmp, ";"); tok; tok = strtok(NULL, ";")) {
-            char *eq = strchr(tok, '=');
-            if (!eq) continue;
-            *eq = 0;
-            int i = find(tok);
-            if (i == P_OLD_PRESET) i = P_PRESET;
-            if (i >= 0) s->p[i] = (float)atof(eq + 1);
+    if (pm_set(&s->manual, key, val)) return;
+    {   /* USER slots: SAVE, then a slot keeps the sound; a slot brings it back */
+        int n = 0, r = pu_set(&s->user, key, val, &n);
+        if (r == PU_SAVE) { char st[PU_STATE_MAX]; get_state(s, st, sizeof st); pu_store(&s->user, n, st, "dice,wild,preset_pick"); }
+        else if (r == PU_LOAD) {
+            restore_state(s, pu_slot(&s->user, n)); pu_loaded(&s->user, n);
+            s->pending |= 0xfe | (1 << P_MATCH);   /* attack .. output, AUTO LEVEL: move the controls */
         }
-        clamp_all(s); s->rev++;
-        return;
+        if (r) return;
     }
+    if (!strcmp(key, "state")) { restore_state(s, val); pu_quiet(&s->user); return; }   /* a project: values as saved, no preset reload */
     int i = find(key);
     if (i < 0 || i == P_OLD_PRESET) return;
     if (i == P_PRESET) { int n = (int)lroundf((float)atof(val)); if (n != (int)s->p[P_PRESET]) apply_preset(s, n); return; }
@@ -195,6 +217,7 @@ static void set_param(void *inst, const char *key, const char *val) {
 
 int mpc_engine_changed(void *inst, char *key, int len) {
     punch_t *s = inst;
+    if (pu_changed(&s->user, key, len)) return 1;
     for (int i = 0; i < NP; i++)
         if (s->pending & (1 << i)) { s->pending &= ~(1 << i); snprintf(key, len, "%s", KEYS[i]); return 1; }
     return 0;
@@ -208,11 +231,9 @@ static const char *PRESET_NAMES[NPRESET] = {"Punchy Drums", "Kick Snap", "Snare 
 static int get_param(void *inst, const char *key, char *buf, int buf_len) {
     punch_t *s = inst;
     { int pt_n = pt_theme_get(&s->theme, key, buf, buf_len); if (pt_n) return pt_n; }
-    if (!strcmp(key, "state")) {
-        int n = 0;
-        for (int i = 1; i < NP && n < buf_len; i++) n += snprintf(buf + n, buf_len - n, "%s=%g;", KEYS[i], (double)s->p[i]);
-        return n;
-    }
+    { int pu_n = pu_get(&s->user, key, buf, buf_len); if (pu_n) return pu_n; }
+    { int pm_n = pm_get(&s->manual, key, buf, buf_len); if (pm_n) return pm_n; }
+    if (!strcmp(key, "state")) return get_state(s, buf, buf_len);
     if (!strcmp(key, "display_rev")) return snprintf(buf, buf_len, "%u", s->rev);
     if (!strcmp(key, "meter")) return snprintf(buf, buf_len, "%d", s->meter);
     if (!strcmp(key, "reading")) return snprintf(buf, buf_len, "TAP A PRESET, THEN SHAPE ATTACK AND SUSTAIN  -  THE METER SHOWS THE CHANGE");   /* fixed: live text would need UpdateDisplays, which close MPC's PRESET menu */

@@ -4,7 +4,7 @@
 
 ![PotentialPunch's page on the MPC](docs/images/potentialpunch.png)
 
-*Insert effect · MPC OS 3.x · Gen1 and Gen2 · v1.4.0*
+*Insert effect · MPC OS 3.x · Gen1 and Gen2 · v1.5.0*
 
 Free and open source (MIT), made by **PotentialBreaks**. It runs inside the MPC like its own effects, with its own touchscreen page, Q-Link control and project recall, and no computer needed while you play.
 
@@ -28,6 +28,10 @@ It reacts to how quickly each hit rises and falls, not to how loud the track is,
 **Presets** (one tap on the page, and in the MPC's PRESET menu): Punchy Drums, Kick Snap, Snare Crack, Break Smack, Dry Drums, Big Room, Hat Tick, Soft Hits, Bass Pluck, Keys & Guitar, Lush Sustain and Flat, plus the drum-bus pairs.
 
 **Drum-bus pairs:** Boom Bap Bus, Lo-Fi Bus, Modern Bus and Glue Bus are in both PotentialPunch and PotentialHeat, made to work together. Put Punch first and Heat after it on your drum bus, and pick the same name in each.
+
+**USER presets** (USER page): 8 slots of your own. Tap **SAVE**, then a slot, to keep the sound; tap a slot to bring it back. They're kept in `PotentialSuite Presets/PotentialPunch.txt` beside your VST2 Plugins folder, so every project sees them and updates keep them. The same slot number in each PotentialSuite effect makes a chain of your own.
+
+**MANUAL page:** the manual is on the MPC's screen too. Tap **MANUAL**, then the page buttons along the top. The full [PotentialSuite manual](https://github.com/PotentialBreakfast/potential-plugins/blob/main/MANUAL.md) covers every plugin, the FX chains and a developer reference.
 
 ## How to use it
 

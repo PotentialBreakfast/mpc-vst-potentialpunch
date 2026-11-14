@@ -191,7 +191,17 @@
         "ON"
       ],
       "default": "ON"
-    }
+    },
+    {"key": "user_save", "name": "Save User Preset", "options": ["OFF", "ON"], "default": 0},
+    {"key": "user_1", "name": "User 1", "type": "slot", "display": "string"},
+    {"key": "user_2", "name": "User 2", "type": "slot", "display": "string"},
+    {"key": "user_3", "name": "User 3", "type": "slot", "display": "string"},
+    {"key": "user_4", "name": "User 4", "type": "slot", "display": "string"},
+    {"key": "user_5", "name": "User 5", "type": "slot", "display": "string"},
+    {"key": "user_6", "name": "User 6", "type": "slot", "display": "string"},
+    {"key": "user_7", "name": "User 7", "type": "slot", "display": "string"},
+    {"key": "user_8", "name": "User 8", "type": "slot", "display": "string"},
+    {"key": "manual_page", "name": "Manual Page", "options": ["START", "CONTROLS", "PRESETS", "CHAINS", "USER", "HELP"], "default": 0}
   ],
   "name": "PotentialPunch"
 }
