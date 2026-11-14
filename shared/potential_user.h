@@ -18,6 +18,9 @@
  * A list row toggles on every tap, so any set of "user_n" is a tap. Taps in the first 3 seconds after the plugin is
  * created or a project's state arrives are ignored (a project load replays values), and so is the second of two taps on
  * one row within 400 ms (one touch can arrive twice).
+ * SAVE: one touch on a drawn button reaches the plugin as two flips 30 to 140 ms apart (on, then straight back off: the
+ * MPC One, 2026-11-14), which disarmed SAVE before the slot tap, so nothing was saved. A change of SAVE within 400 ms of
+ * the last one is that second flip: it is ignored and the host is told the real value, so the button stays lit.
  *
  * Use, in an engine:
  *     pu_user_t user;                                                     in the instance
@@ -52,7 +55,7 @@ typedef struct {
     int lit;                            /* the slot loaded or saved last, -1 none */
     int armed;                          /* SAVE is lit */
     int report_save;                    /* user_save changed by the plugin: tell the host */
-    long long quiet_until, tap_ms[PU_SLOTS];
+    long long quiet_until, tap_ms[PU_SLOTS], save_ms;
 } pu_user_t;
 
 static long long pu_now_ms(void) {
@@ -128,6 +131,10 @@ static int pu_slot_of(const char *key) {    /* "user_3" -> 2, else -1 */
 static int pu_set(pu_user_t *u, const char *key, const char *val, int *n) {
     if (!strcmp(key, "user_save")) {
         int on = atof(val) > 0.5;
+        long long t = pu_now_ms();
+        if (on == u->armed) return PU_DONE;
+        if (u->save_ms && t - u->save_ms < PU_TWICE_MS) { u->report_save = 1; return PU_DONE; }   /* the touch's 2nd flip */
+        u->save_ms = t;
         u->armed = on;
         return PU_DONE;
     }

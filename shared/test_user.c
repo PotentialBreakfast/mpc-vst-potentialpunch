@@ -55,6 +55,18 @@ int main(int argc, char **argv) {
     void *c = e->create(""); ms(3100);
     e->set_param(c, "user_save", "1"); e->set_param(c, "user_1", "1");
     e->get_param(c, "user_1", buf, sizeof buf); assert(!strcmp(buf, "USER 1"));
+    /* one touch on SAVE arrives as two flips (on, then back off, ms apart): it stays armed and the next slot saves */
+    ms(500);
+    while (mpc_engine_changed(c, key, sizeof key)) {}
+    e->set_param(c, "user_save", "1"); e->set_param(c, "user_save", "0");
+    e->get_param(c, "user_save", buf, sizeof buf); assert(!strcmp(buf, "1"));
+    saw = 0; while (mpc_engine_changed(c, key, sizeof key)) if (!strcmp(key, "user_save")) saw = 1;
+    assert(saw);                                                                 /* the host hears it is still on */
+    ms(200); e->set_param(c, "user_2", "1");
+    e->get_param(c, "user_2", buf, sizeof buf); assert(!strcmp(buf, "USER 2"));
+    /* a later tap on SAVE still turns it off */
+    ms(500); e->set_param(c, "user_save", "1"); ms(500); e->set_param(c, "user_save", "0");
+    e->get_param(c, "user_save", buf, sizeof buf); assert(!strcmp(buf, "0"));
     e->destroy(a); e->destroy(b); e->destroy(c);
     puts("USER slots: OK");
     return 0;
