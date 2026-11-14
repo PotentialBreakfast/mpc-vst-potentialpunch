@@ -25,7 +25,7 @@ static const char *KEYS[NP] = {"preset", "attack", "sustain", "speed", "focus", 
                                "match"};
 
 /* ---- presets: attack, sustain, speed, focus, clip, mix, output (same order as the preset param's options) ---- */
-#define NPRESET 16
+#define NPRESET 19
 static const float PRESETS[NPRESET][7] = {
     { 45, -15, 1, 0, 1, 100,  0},   /* Punchy Drums */
     { 60, -25, 0, 1, 0, 100, -1},   /* Kick Snap */
@@ -44,6 +44,10 @@ static const float PRESETS[NPRESET][7] = {
     { 15,  25, 2, 1, 0, 100,  0},   /* Lo-Fi Bus */
     { 55, -25, 0, 0, 1, 100,  0},   /* Modern Bus */
     { 10,  10, 1, 0, 0,  60,  0},   /* Glue Bus */
+    /* 1.4.0: FX chains. Pick the same name in PotentialPatina, PotentialGrit and PotentialBleed (see the README) */
+    { 30,   0, 0, 0, 0,  80,  0},   /* 90s Stab: chain Y (Grit CRUSH, Punch, Bleed TINES, Patina '90s CASSETTE) */
+    { 50,  15, 1, 0, 1, 100, -1},   /* Break Bus: chain W (Punch, Grit DUST, Bleed WIRES, Patina '70s TAPE) */
+    { 60, -25, 0, 1, 0, 100, -1},   /* Dub Drums: chain Z (Patina '80s SAMPLER, Punch, Bleed ROOM, Grit ECHO) */
 };
 
 /* speed: how long the slow follower takes to catch up (= length of the "attack" part), the short release,
@@ -198,7 +202,8 @@ int mpc_engine_changed(void *inst, char *key, int len) {
 
 static const char *PRESET_NAMES[NPRESET] = {"Punchy Drums", "Kick Snap", "Snare Crack", "Break Smack", "Dry Drums", "Big Room",
                                             "Hat Tick", "Soft Hits", "Bass Pluck", "Keys & Guitar", "Lush Sustain", "Flat",
-                                            "Boom Bap Bus", "Lo-Fi Bus", "Modern Bus", "Glue Bus"};
+                                            "Boom Bap Bus", "Lo-Fi Bus", "Modern Bus", "Glue Bus",
+                                            "90s Stab", "Break Bus", "Dub Drums"};
 
 static int get_param(void *inst, const char *key, char *buf, int buf_len) {
     punch_t *s = inst;

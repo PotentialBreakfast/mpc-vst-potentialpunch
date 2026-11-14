@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0 (2026-11)
+- FX chain presets: 90s Stab, Break Bus and Dub Drums. Pick the same name in PotentialPatina, PotentialGrit and PotentialBleed to load the whole chain (see the PotentialSuite page).
+- The PRESETS buttons are now three rows, to make room.
+
 ## 1.3.0 (2026-11)
 - **AUTO LEVEL** (OUTPUT panel): measures how loud the sound is going in and coming out (over about a second) and evens them up, so a punchier setting isn't just louder. On for a new copy; projects saved before 1.3.0 keep it off so they sound as they did.
 - **Drum-bus pair presets**: Boom Bap Bus, Lo-Fi Bus, Modern Bus and Glue Bus. They're in PotentialHeat 1.3.0 too, made to work together: put Punch first and Heat after it on your drum bus and pick the same name in each.

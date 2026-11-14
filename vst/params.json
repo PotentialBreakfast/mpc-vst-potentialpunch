@@ -15,7 +15,10 @@
         "Bass Pluck",
         "Keys & Guitar",
         "Lush Sustain",
-        "Flat"
+        "Flat",
+        "90s Stab",
+        "Break Bus",
+        "Dub Drums"
       ],
       "default": "Punchy Drums",
       "legacy": true
@@ -147,7 +150,10 @@
         "Boom Bap Bus",
         "Lo-Fi Bus",
         "Modern Bus",
-        "Glue Bus"
+        "Glue Bus",
+        "90s Stab",
+        "Break Bus",
+        "Dub Drums"
       ],
       "default": "Punchy Drums"
     },
