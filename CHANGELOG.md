@@ -1,5 +1,9 @@
 # Changelog
 
+
+## 1.6.1 (2026-11-15)
+
+- Fixed: the third row of presets hung over the bottom edge of the PRESETS frame.
 ## 1.6.0 (2026-11-15)
 
 - A fourth look, **Vintage** (Potential1200's late-80s drum-machine look), on the LOOK keys.
