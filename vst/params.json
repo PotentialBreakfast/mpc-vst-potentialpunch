@@ -163,7 +163,8 @@
       "options": [
         "Print Plate",
         "Night Rack",
-        "Colour Block"
+        "Colour Block",
+        "Vintage"
       ],
       "default": 0
     },

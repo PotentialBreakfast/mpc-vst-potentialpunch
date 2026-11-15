@@ -55,7 +55,7 @@ Rules of thumb: Punch early, Bleed before Patina, echo and chop last, one noise 
 # Good to know
 - Q-Links: ATTACK, SUSTAIN, MIX, OUTPUT, PRESET, SPEED, FOCUS and CLIP.
 - Every setting is saved with your project.
-- Looks: Print Plate, Night Rack or Colour Block, on the SETTINGS page. A new look shows the next time the plugin loads.
+- Looks: Print Plate, Night Rack, Colour Block or Vintage, on the SETTINGS page. A new look shows the next time the plugin loads.
 - Turning ATTACK up raises the peaks. Leave CLIP on, or lower OUTPUT, if the track gets close to clipping.
 - Stereo in, stereo out, at 44.1 kHz. No added delay.
 

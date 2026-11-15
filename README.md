@@ -4,7 +4,7 @@
 
 ![PotentialPunch's page on the MPC](docs/images/potentialpunch.png)
 
-*Insert effect · MPC OS 3.x · Gen1 and Gen2 · v1.5.1*
+*Insert effect · MPC OS 3.x · Gen1 and Gen2 · v1.6.0*
 
 Free and open source (MIT), made by **PotentialBreaks**. It runs inside the MPC like its own effects, with its own touchscreen page, Q-Link control and project recall, and no computer needed while you play.
 
@@ -37,9 +37,9 @@ It reacts to how quickly each hit rises and falls, not to how loud the track is,
 
 Add it as an **insert effect** on a track, program, pad or bus. It won't be in the instrument list. Tap a preset, then fine-tune **ATTACK** and **SUSTAIN** to taste. On a whole drum bus, **Punchy Drums** or **Break Smack** is a good start.
 
-## Three looks
+## Four looks
 
-PotentialPunch comes in three looks: **Print Plate** (the default), **Night Rack** and **Colour Block**. Open the **SETTINGS** page and tap one of the big LOOK keys. The new look shows the next time the plugin loads: take it off the track and add it again, or load your project again. Your choice is kept on your MPC for every project. The sound and the controls are the same in all three.
+PotentialPunch comes in four looks: **Print Plate** (the default), **Night Rack**, **Colour Block** and **Vintage** (a late-80s drum machine: warm grey panel, cream keys, an amber display). Open the **SETTINGS** page and tap one of the big LOOK keys. The new look shows the next time the plugin loads: take it off the track and add it again, or load your project again. Your choice is kept on your MPC for every project. The sound and the controls are the same in all four.
 
 ## Limitations
 

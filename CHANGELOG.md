@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 (2026-11-15)
+
+- A fourth look, **Vintage** (Potential1200's late-80s drum-machine look), on the LOOK keys.
+
 ## 1.5.1 (2026-11-14)
 - **Fixed: SAVE, then a USER slot, saved nothing.** One touch on the SAVE button reaches the plugin as two quick flips (on, then straight back off), so SAVE switched itself off before you tapped a slot. The second flip is now ignored: SAVE stays lit ("NOW TAP A SLOT") until you tap a slot, empty or full. Tap SAVE again to cancel.
 - Sound, controls, saved projects and your USER slots are unchanged.
